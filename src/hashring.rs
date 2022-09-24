@@ -35,6 +35,7 @@ where
         }
     }
 
+    /// There can be hash collisions resulting in fewer than weights nodes added.
     pub fn add(&mut self, node: N, weight: NonZeroU64) {
         let virtual_node_hashes = Self::compute_virtual_node_hashes(&node, weight);
         let master_node = Rc::new(MasterNode { node, weight });
