@@ -44,6 +44,7 @@ where
         }
     }
 
+    #[inline]
     pub fn get_by_key<K>(&self, key: K) -> Option<&N>
     where
         K: Hash,
@@ -55,7 +56,7 @@ where
             Some((_, virtual_node)) => Some(virtual_node.node.borrow()),
             None => {
                 // We couldn't find any node greater than the key hash,
-                // so let's loop around and take the first one.
+                // so let's loop around and take the first one in the HashRing if available.
                 self.virtual_nodes
                     .iter()
                     .next()
