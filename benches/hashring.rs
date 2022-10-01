@@ -4,7 +4,7 @@ use std::num::NonZeroU64;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         ring.add("127.0.0.1:12345", NonZeroU64::new(1).unwrap());
         ring.add("127.0.0.1:12346", NonZeroU64::new(1).unwrap());
         let mut group = c.benchmark_group("Getting a node for a key from the HashRing");
@@ -18,7 +18,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     }
 
     {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let mut group = c.benchmark_group("Adding virtual nodes");
         for size in [1, 10, 100, 1000].iter() {
             group.throughput(Throughput::Bytes(*size as u64));
@@ -30,7 +30,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     }
 
     {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let mut group = c.benchmark_group("Removing virtual nodes");
         for size in [1, 10, 100, 1000].iter() {
             ring.add("127.0.0.1:12346", NonZeroU64::new(*size).unwrap());
