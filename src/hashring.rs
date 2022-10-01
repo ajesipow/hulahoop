@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::num::NonZeroU64;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 struct MasterNode<N> {
@@ -14,7 +14,7 @@ struct MasterNode<N> {
 
 #[derive(Debug)]
 pub struct HashRing<N> {
-    virtual_nodes: BTreeMap<u64, Rc<MasterNode<N>>>,
+    virtual_nodes: BTreeMap<u64, Arc<MasterNode<N>>>,
 }
 
 impl<N> Default for HashRing<N> {
@@ -38,7 +38,7 @@ where
     /// There can be hash collisions resulting in fewer than weights nodes added.
     pub fn add(&mut self, node: N, weight: NonZeroU64) {
         let virtual_node_hashes = Self::compute_virtual_node_hashes(&node, weight);
-        let master_node = Rc::new(MasterNode { node, weight });
+        let master_node = Arc::new(MasterNode { node, weight });
         for virtual_node_hash in virtual_node_hashes.into_iter() {
             self.virtual_nodes
                 .insert(virtual_node_hash, master_node.clone());
