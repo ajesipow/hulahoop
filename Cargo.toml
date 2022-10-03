@@ -14,6 +14,7 @@ fxhash = ["dep:rustc-hash"]
 
 [dev-dependencies]
 criterion = "0.3"
+rustc-hash = "1.1"
 
 [[bench]]
 name = "hashring"

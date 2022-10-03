@@ -296,4 +296,19 @@ mod tests {
             assert_eq!(node_for_key_4, Some(&node_2));
         }
     }
+
+    #[test]
+    fn creating_a_hashring_with_custom_hasher_and_adding_and_getting_works() {
+        use rustc_hash::FxHasher;
+        let mut ring: HashRing<&str, _> =
+            HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let node = "10.0.0.1:12345";
+        ring.add(node, NonZeroU64::new(1).unwrap());
+
+        let node_for_val_a = ring.get_by_key("abc");
+        let node_for_val_b = ring.get_by_key(12345);
+
+        assert_eq!(node_for_val_a, Some(&node));
+        assert_eq!(node_for_val_b, Some(&node));
+    }
 }
