@@ -1,8 +1,11 @@
+#[cfg(feature = "fxhash")]
+use rustc_hash::FxHasher;
 use std::borrow::Borrow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
+use std::hash::BuildHasherDefault;
+use std::hash::{BuildHasher, Hash, Hasher};
 use std::num::NonZeroU64;
 use std::sync::Arc;
 
@@ -13,25 +16,60 @@ struct MasterNode<N> {
 }
 
 #[derive(Debug)]
-pub struct HashRing<N> {
+pub struct HashRing<N, B> {
     virtual_nodes: BTreeMap<u64, Arc<MasterNode<N>>>,
+    hash_builder: B,
 }
 
-impl<N> Default for HashRing<N> {
+#[cfg(not(feature = "fxhash"))]
+impl<N> Default for HashRing<N, BuildHasherDefault<DefaultHasher>> {
     fn default() -> Self {
         Self {
             virtual_nodes: Default::default(),
+            hash_builder: BuildHasherDefault::default(),
         }
     }
 }
 
-impl<N> HashRing<N>
-where
-    N: Hash,
-{
+#[cfg(not(feature = "fxhash"))]
+impl<N> HashRing<N, BuildHasherDefault<DefaultHasher>> {
     pub fn new() -> Self {
         Self {
             virtual_nodes: BTreeMap::new(),
+            hash_builder: BuildHasherDefault::default(),
+        }
+    }
+}
+
+#[cfg(feature = "fxhash")]
+impl<N> Default for HashRing<N, BuildHasherDefault<FxHasher>> {
+    fn default() -> Self {
+        Self {
+            virtual_nodes: Default::default(),
+            hash_builder: BuildHasherDefault::default(),
+        }
+    }
+}
+
+#[cfg(feature = "fxhash")]
+impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
+    pub fn new() -> Self {
+        Self {
+            virtual_nodes: BTreeMap::new(),
+            hash_builder: BuildHasherDefault::default(),
+        }
+    }
+}
+
+impl<N, B> HashRing<N, B>
+where
+    N: Hash,
+    B: BuildHasher,
+{
+    pub fn with_hasher(hash_builder: B) -> Self {
+        Self {
+            virtual_nodes: BTreeMap::new(),
+            hash_builder,
         }
     }
 
@@ -50,7 +88,7 @@ where
     where
         K: Hash,
     {
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = self.hash_builder.build_hasher();
         key.hash(&mut hasher);
         let key_hash = hasher.finish();
         match self.virtual_nodes.range(key_hash..).next() {
@@ -114,7 +152,7 @@ mod tests {
 
     #[test]
     fn adding_a_node_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(1).unwrap());
 
@@ -123,7 +161,7 @@ mod tests {
 
     #[test]
     fn adding_a_node_with_many_virtual_nodes_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(100).unwrap());
 
@@ -132,7 +170,7 @@ mod tests {
 
     #[test]
     fn adding_multiple_nodes_with_many_virtual_nodes_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node_1 = "10.0.0.1:12345";
         let node_2 = "20.0.0.1:12345";
         ring.add(node_1, NonZeroU64::new(100).unwrap());
@@ -143,7 +181,7 @@ mod tests {
 
     #[test]
     fn removing_a_node_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(1).unwrap());
         assert_eq!(ring.virtual_nodes.len(), 1);
@@ -154,7 +192,7 @@ mod tests {
 
     #[test]
     fn removing_a_node_with_many_virtual_nodes_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(100).unwrap());
         assert_eq!(ring.virtual_nodes.len(), 100);
@@ -166,7 +204,7 @@ mod tests {
 
     #[test]
     fn removing_multiple_nodes_with_many_virtual_nodes_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node_1 = "10.0.0.1:12345";
         let node_2 = "20.0.0.1:12345";
         ring.add(node_1, NonZeroU64::new(100).unwrap());
@@ -184,7 +222,7 @@ mod tests {
 
     #[test]
     fn adding_one_node_and_getting_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(1).unwrap());
 
@@ -197,7 +235,7 @@ mod tests {
 
     #[test]
     fn adding_multiple_nodes_and_getting_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node_1 = "10.0.0.1:12345";
         let node_2 = "20.0.0.1:12345";
         let node_3 = "30.0.0.1:12345";
@@ -218,7 +256,7 @@ mod tests {
 
     #[test]
     fn adding_multiple_nodes_getting_and_removing_works() {
-        let mut ring: HashRing<&str> = HashRing::new();
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let node_1 = "10.0.0.1:12345";
         let node_2 = "20.0.0.1:12345";
         let node_3 = "30.0.0.1:12345";
@@ -257,5 +295,20 @@ mod tests {
             // Only this value got remapped
             assert_eq!(node_for_key_4, Some(&node_2));
         }
+    }
+
+    #[test]
+    fn creating_a_hashring_with_custom_hasher_and_adding_and_getting_works() {
+        use rustc_hash::FxHasher;
+        let mut ring: HashRing<&str, _> =
+            HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let node = "10.0.0.1:12345";
+        ring.add(node, NonZeroU64::new(1).unwrap());
+
+        let node_for_val_a = ring.get_by_key("abc");
+        let node_for_val_b = ring.get_by_key(12345);
+
+        assert_eq!(node_for_val_a, Some(&node));
+        assert_eq!(node_for_val_b, Some(&node));
     }
 }
