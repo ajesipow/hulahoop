@@ -4,6 +4,7 @@ help: ## Show this help message
 check: c-clippy c-fmt ## Run the clippy and formatter
 
 c-clippy:  ## Run the clippy check
+	cargo clippy --all-targets -- -D warnings
 	cargo clippy --all-targets --all-features -- -D warnings
 
 c-fmt: update-nightly-fmt ## Run the fmt check
