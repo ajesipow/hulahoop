@@ -7,7 +7,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fxhash = { version = "0.2", optional = true }
+rustc-hash = { version = "1.1", optional = true }
+
+[features]
+fxhash = ["dep:rustc-hash"]
 
 [dev-dependencies]
 criterion = "0.3"

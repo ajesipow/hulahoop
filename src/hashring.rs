@@ -1,10 +1,9 @@
 #[cfg(feature = "fxhash")]
-use fxhash::FxBuildHasher;
+use rustc_hash::FxHasher;
 use std::borrow::Borrow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-#[cfg(not(feature = "fxhash"))]
 use std::hash::BuildHasherDefault;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::num::NonZeroU64;
@@ -43,21 +42,21 @@ impl<N> HashRing<N, BuildHasherDefault<DefaultHasher>> {
 }
 
 #[cfg(feature = "fxhash")]
-impl<N> Default for HashRing<N, FxBuildHasher> {
+impl<N> Default for HashRing<N, BuildHasherDefault<FxHasher>> {
     fn default() -> Self {
         Self {
             virtual_nodes: Default::default(),
-            hash_builder: FxBuildHasher::default(),
+            hash_builder: BuildHasherDefault::default(),
         }
     }
 }
 
 #[cfg(feature = "fxhash")]
-impl<N> HashRing<N, FxBuildHasher> {
+impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
     pub fn new() -> Self {
         Self {
             virtual_nodes: BTreeMap::new(),
-            hash_builder: FxBuildHasher::default(),
+            hash_builder: BuildHasherDefault::default(),
         }
     }
 }
@@ -65,7 +64,7 @@ impl<N> HashRing<N, FxBuildHasher> {
 impl<N, B> HashRing<N, B>
 where
     N: Hash,
-    B: BuildHasher + Clone,
+    B: BuildHasher,
 {
     pub fn with_hasher(hash_builder: B) -> Self {
         Self {
@@ -89,7 +88,7 @@ where
     where
         K: Hash,
     {
-        let mut hasher = self.hash_builder.clone().build_hasher();
+        let mut hasher = self.hash_builder.build_hasher();
         key.hash(&mut hasher);
         let key_hash = hasher.finish();
         match self.virtual_nodes.range(key_hash..).next() {
