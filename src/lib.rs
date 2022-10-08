@@ -1,4 +1,8 @@
-// #![deny(missing_docs)]
+//! # Hulahoop
+//!
+//! `hulahoop` provides a consistent hashing algorithm with support for virtual nodes.
+
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![cfg_attr(test, deny(rust_2018_idioms))]
 #![cfg_attr(all(test, feature = "full"), deny(unreachable_pub))]
@@ -23,6 +27,18 @@ struct MasterNode<N> {
     weight: NonZeroU64,
 }
 
+/// A [hash ring] for consistent hashing.
+///
+///
+/// # Examples
+///
+/// ```
+/// use std::num::NonZeroU64;
+/// use hulahoop::HashRing;
+/// let mut map: HashRing<&str, _> = HashRing::new();
+/// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+/// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+/// ```
 #[derive(Debug)]
 pub struct HashRing<N, B> {
     virtual_nodes: BTreeMap<u64, Arc<MasterNode<N>>>,
@@ -41,6 +57,17 @@ impl<N> Default for HashRing<N, BuildHasherDefault<DefaultHasher>> {
 
 #[cfg(not(feature = "fxhash"))]
 impl<N> HashRing<N, BuildHasherDefault<DefaultHasher>> {
+    /// Creates a new `HashRing` with the default hasher.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::num::NonZeroU64;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, _> = HashRing::new();
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    /// ```
     pub fn new() -> Self {
         Self {
             virtual_nodes: BTreeMap::new(),
@@ -61,6 +88,17 @@ impl<N> Default for HashRing<N, BuildHasherDefault<FxHasher>> {
 
 #[cfg(feature = "fxhash")]
 impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
+    /// Creates a new `HashRing` with the default hasher.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::num::NonZeroU64;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, _> = HashRing::new();
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    /// ```
     pub fn new() -> Self {
         Self {
             virtual_nodes: BTreeMap::new(),
@@ -74,6 +112,19 @@ where
     N: Hash,
     B: BuildHasher,
 {
+    /// Creates an empty `HashRing` which will use the given `hash_builder` to hash nodes and keys.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::hash::BuildHasherDefault;
+    /// use std::num::NonZeroU64;
+    /// use rustc_hash::FxHasher;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, BuildHasherDefault<FxHasher>> = HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    /// ```
     pub fn with_hasher(hash_builder: B) -> Self {
         Self {
             virtual_nodes: BTreeMap::new(),
@@ -81,7 +132,20 @@ where
         }
     }
 
-    /// There can be hash collisions resulting in fewer than weights nodes added.
+    /// Adds a node to the `HashRing`.
+    ///
+    /// A positive `weight`, representing the number of virtual nodes for the given `node`, must be provided.
+    ///
+    /// There can be hash collisions resulting in fewer than `weight` virtual nodes added.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::num::NonZeroU64;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+    /// ```
     pub fn add(&mut self, node: N, weight: NonZeroU64) {
         let virtual_node_hashes = Self::compute_virtual_node_hashes(&node, weight);
         let master_node = Arc::new(MasterNode { node, weight });
@@ -91,8 +155,20 @@ where
         }
     }
 
+    /// Returns a reference to the node with a hash closest to the hash of the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::num::NonZeroU64;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(1).unwrap());
+    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    /// assert_eq!(map.get(12345), Some(&"127.0.0.1:1234"));
+    /// ```
     #[inline]
-    pub fn get_by_key<K>(&self, key: K) -> Option<&N>
+    pub fn get<K>(&self, key: K) -> Option<&N>
     where
         K: Hash,
     {
@@ -130,6 +206,18 @@ where
             .collect()
     }
 
+    /// Removes a node from the `HashRing`, returning the number of virtual nodes (weight) of the removed node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::num::NonZeroU64;
+    /// use hulahoop::HashRing;
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// map.add("127.0.0.1:1234", NonZeroU64::new(10).unwrap());
+    /// assert_eq!(map.remove("127.0.0.1:1234"), 10);
+    /// assert_eq!(map.remove("127.0.0.1:1234"), 0);
+    /// ```
     pub fn remove(&mut self, node: N) -> u64 {
         // At least one node should exist
         let virtual_node_hashes =
@@ -234,8 +322,8 @@ mod tests {
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(1).unwrap());
 
-        let node_for_val_a = ring.get_by_key("abc");
-        let node_for_val_b = ring.get_by_key(12345);
+        let node_for_val_a = ring.get("abc");
+        let node_for_val_b = ring.get(12345);
 
         assert_eq!(node_for_val_a, Some(&node));
         assert_eq!(node_for_val_b, Some(&node));
@@ -251,10 +339,10 @@ mod tests {
         ring.add(node_2, NonZeroU64::new(1).unwrap());
         ring.add(node_3, NonZeroU64::new(1).unwrap());
 
-        let node_for_val_a = ring.get_by_key("hula");
-        let node_for_val_b = ring.get_by_key(12345);
-        let node_for_val_c = ring.get_by_key(54321);
-        let node_for_val_d = ring.get_by_key(b"12345");
+        let node_for_val_a = ring.get("hula");
+        let node_for_val_b = ring.get(12345);
+        let node_for_val_c = ring.get(54321);
+        let node_for_val_d = ring.get(b"12345");
 
         assert_eq!(node_for_val_a, Some(&node_3));
         assert_eq!(node_for_val_b, Some(&node_2));
@@ -278,10 +366,10 @@ mod tests {
         let key_4 = b"12345";
 
         {
-            let node_for_key_1 = ring.get_by_key(key_1);
-            let node_for_val_2 = ring.get_by_key(key_2);
-            let node_for_key_3 = ring.get_by_key(key_3);
-            let node_for_key_4 = ring.get_by_key(key_4);
+            let node_for_key_1 = ring.get(key_1);
+            let node_for_val_2 = ring.get(key_2);
+            let node_for_key_3 = ring.get(key_3);
+            let node_for_key_4 = ring.get(key_4);
 
             assert_eq!(node_for_key_1, Some(&node_3));
             assert_eq!(node_for_val_2, Some(&node_2));
@@ -292,10 +380,10 @@ mod tests {
         ring.remove(node_1);
 
         {
-            let node_for_key_1 = ring.get_by_key(key_1);
-            let node_for_key_2 = ring.get_by_key(key_2);
-            let node_for_key_3 = ring.get_by_key(key_3);
-            let node_for_key_4 = ring.get_by_key(key_4);
+            let node_for_key_1 = ring.get(key_1);
+            let node_for_key_2 = ring.get(key_2);
+            let node_for_key_3 = ring.get(key_3);
+            let node_for_key_4 = ring.get(key_4);
 
             assert_eq!(node_for_key_1, Some(&node_3));
             assert_eq!(node_for_key_2, Some(&node_2));
@@ -313,8 +401,8 @@ mod tests {
         let node = "10.0.0.1:12345";
         ring.add(node, NonZeroU64::new(1).unwrap());
 
-        let node_for_val_a = ring.get_by_key("abc");
-        let node_for_val_b = ring.get_by_key(12345);
+        let node_for_val_a = ring.get("abc");
+        let node_for_val_b = ring.get(12345);
 
         assert_eq!(node_for_val_a, Some(&node));
         assert_eq!(node_for_val_b, Some(&node));

@@ -13,7 +13,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         for size in ["abc", "1234", "Some very very long text"].iter() {
             group.throughput(Throughput::Bytes(size.as_bytes().len() as u64));
             group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
-                b.iter(|| ring.get_by_key(size));
+                b.iter(|| ring.get(size));
             });
         }
         group.finish();
@@ -29,7 +29,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         for size in ["abc", "1234", "Some very very long text"].iter() {
             group.throughput(Throughput::Bytes(size.as_bytes().len() as u64));
             group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
-                b.iter(|| ring.get_by_key(size));
+                b.iter(|| ring.get(size));
             });
         }
         group.finish();
