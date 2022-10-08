@@ -1,5 +1,12 @@
 [package]
 name = "hulahoop"
+license = "MIT OR Apache-2.0"
+description = "An efficient consistent hash ring implementation supporting virtual nodes."
+repository = "https://github.com/ajesipow/hulahoop"
+readme = "README.md"
+keywords = ["consistent", "hash", "ring", "virtual nodes", "distributed"]
+categories = ["algorithms", "data-structures"]
+include = ["/src"]
 version = "0.1.0"
 authors = ["ajesipow"]
 edition = "2021"
