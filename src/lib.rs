@@ -407,4 +407,23 @@ mod tests {
         assert_eq!(node_for_val_a, Some(&node));
         assert_eq!(node_for_val_b, Some(&node));
     }
+
+    #[test]
+    fn read_me_test() {
+        let mut map: HashRing<&str, _> = HashRing::default();
+
+        // Nodes only need to implement Hash
+        // Provide a weight to define the number of virtual nodes
+        map.add("10.0.0.1:1234", NonZeroU64::new(10).unwrap());
+        map.add("10.0.0.2:1234", NonZeroU64::new(10).unwrap());
+
+        // Keys also only need to implement Hash
+        assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+        assert_eq!(map.get("Another key"), Some(&"10.0.0.2:1234"));
+
+        map.remove("10.0.0.2:1234");
+
+        assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+        assert_eq!(map.get("Another key"), Some(&"10.0.0.1:1234"));
+    }
 }
