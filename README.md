@@ -27,7 +27,7 @@
     assert_eq!(hashring.get("Another key"), Some(&"10.0.0.1:1234"));
 ```
 
-`HashRing` uses `Arc` under the hood to allocate memory only per node and not for each virtual node.
+`HashRing` uses `Arc` under the hood to allocate memory only per node and not for every virtual node added via the weight parameter.
 
 The `Hashring` is `Send + Sync`. 
 
