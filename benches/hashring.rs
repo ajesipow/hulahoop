@@ -48,8 +48,33 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     }
 
     {
+        let mut ring: HashRing<&str, _> =
+            HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let mut group = c.benchmark_group("Adding virtual nodes with FxHasher");
+        for size in [1, 10, 100, 1000].iter() {
+            group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
+                b.iter(|| ring.add("10.0.0.1:12345", NonZeroU64::new(size).unwrap()));
+            });
+        }
+        group.finish();
+    }
+
+    {
         let mut ring: HashRing<&str, _> = HashRing::new();
         let mut group = c.benchmark_group("Removing virtual nodes");
+        for size in [1, 10, 100, 1000].iter() {
+            ring.add("10.0.0.1:12345", NonZeroU64::new(*size).unwrap());
+            group.bench_function(BenchmarkId::from_parameter(size), |b| {
+                b.iter(|| ring.remove("10.0.0.1:12345"))
+            });
+        }
+        group.finish();
+    }
+
+    {
+        let mut ring: HashRing<&str, _> =
+            HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let mut group = c.benchmark_group("Removing virtual nodes with FxHasher");
         for size in [1, 10, 100, 1000].iter() {
             ring.add("10.0.0.1:12345", NonZeroU64::new(*size).unwrap());
             group.bench_function(BenchmarkId::from_parameter(size), |b| {
