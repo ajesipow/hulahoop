@@ -4,7 +4,7 @@
 
 ---
 
-## Example
+## Usage
 
 ```rust
     use std::num::NonZeroU64;
@@ -26,6 +26,11 @@
     assert_eq!(hashring.get("Some key"), Some(&"10.0.0.1:1234"));
     assert_eq!(hashring.get("Another key"), Some(&"10.0.0.1:1234"));
 ```
+
+`HashRing` uses `Arc` under the hood to allocate memory only per node and not for each virtual node.
+
+The `Hashring` is `Send + Sync`. 
+
 ---
 
 ## Hashers
