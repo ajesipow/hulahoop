@@ -28,7 +28,34 @@
 ```
 ---
 
-## Benchmark
+## Hashers
+
+Per default, `hulahoop` uses `std::collections::hash_map::DefaultHasher` to hash values.
+
+Custom hashers can be used with the `HashRing::with_hasher()` method:
+
+```rust
+    use rustc_hash::FxHasher;
+    let mut ring: HashRing<&str, _> = HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+```
+
+For convenience, the [faster](https://nnethercote.github.io/perf-book/hashing.html) hasher [FxHasher](https://docs.rs/rustc-hash/1.1.0/rustc_hash/struct.FxHasher.html) can be used by activating the `fxhash` feature of this crate. 
+
+
+
+---
+
+## Benchmarks
+
+|                          | DefaultHasher | FxHasher |
+|--------------------------|---------------|----------|
+| Get (key length = 10)    |          10ns | 5ns      |
+| Get (key length = 100)   |          11ns | 5ns      |
+| Get (key length = 1000)  |          30ns | 11ns     |
+| Get (key length = 10000) |         300ns | 140ns    |
+| Add (weight = 1)         |          65ns | 65ns     |
+| Add (weight = 10)        |         260ns | 260ns    |
+| Add (weight = 100)       |         2.3us | 2.3us    |
 
 ---
 
