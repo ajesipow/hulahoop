@@ -15,7 +15,7 @@ use rustc_hash::FxHasher;
 use std::borrow::Borrow;
 #[cfg(not(feature = "fxhash"))]
 use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt::Debug;
 use std::hash::BuildHasherDefault;
 use std::hash::{BuildHasher, Hash, Hasher};
@@ -112,7 +112,7 @@ impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
 
 impl<N, B> HashRing<N, B>
 where
-    N: Hash,
+    N: Hash + Debug,
     B: BuildHasher,
 {
     /// Creates an empty `HashRing` which will use the given `hash_builder` to hash nodes and keys.
@@ -160,17 +160,23 @@ where
         }
         let weight = NonZeroU64::new(weight).unwrap();
         let virtual_node_hashes = self.compute_virtual_node_hashes(&node, weight);
-        let master_node = Arc::new(MasterNode { node, weight });
+        let actual_weight = NonZeroU64::new(virtual_node_hashes.len() as u64).unwrap();
         let mut colliding_node = None;
+        if self
+            .virtual_nodes
+            // It's guaranteed that at least one element is present
+            .contains_key(virtual_node_hashes.iter().next().unwrap())
+        {
+            colliding_node = self.remove_inner(&node).0;
+        }
+        let master_node = Arc::new(MasterNode {
+            node,
+            weight: actual_weight,
+        });
+
         for virtual_node_hash in virtual_node_hashes.into_iter() {
-            if let Some(existing_node) = self
-                .virtual_nodes
-                .insert(virtual_node_hash, master_node.clone())
-            {
-                if let Ok(node) = Arc::try_unwrap(existing_node) {
-                    colliding_node = Some(node.node);
-                }
-            }
+            self.virtual_nodes
+                .insert(virtual_node_hash, master_node.clone());
         }
         colliding_node
     }
@@ -213,7 +219,7 @@ where
         self.virtual_nodes.get(hash).map(|node| node.as_ref())
     }
 
-    fn compute_virtual_node_hashes(&self, node: &N, weight: NonZeroU64) -> Vec<u64> {
+    fn compute_virtual_node_hashes(&self, node: &N, weight: NonZeroU64) -> HashSet<u64> {
         (0..weight.get())
             .into_iter()
             .map(|virtual_node_identifier| {
@@ -236,30 +242,43 @@ where
     ///
     /// let mut map: HashRing<&str, _> = HashRing::default();
     /// map.insert("127.0.0.1:1234", 10);
-    /// assert_eq!(map.remove("127.0.0.1:1234"), 10);
-    /// assert_eq!(map.remove("127.0.0.1:1234"), 0);
+    /// assert_eq!(map.remove(&"127.0.0.1:1234"), 10);
+    /// assert_eq!(map.remove(&"127.0.0.1:1234"), 0);
     /// ```
-    pub fn remove(&mut self, node: N) -> u64 {
+    pub fn remove(&mut self, node: &N) -> u64 {
+        self.remove_inner(node).1
+    }
+
+    fn remove_inner(&mut self, node: &N) -> (Option<N>, u64) {
         // At least one node should exist
         let virtual_node_hashes =
-            self.compute_virtual_node_hashes(&node, NonZeroU64::new(1).unwrap());
+            self.compute_virtual_node_hashes(node, NonZeroU64::new(1).unwrap());
         let one_node = virtual_node_hashes
-            .first()
+            .iter()
+            .next()
             .and_then(|hash| self.get_master_node_by_hash(hash));
         match one_node {
             Some(master_node) => {
-                let mut removed_nodes = 0;
-                for virtual_node_hash in self
+                let mut number_of_removed_virtual_nodes = 0;
+                let mut removed_node = None;
+                let mut virtual_node_hashes = self
                     .compute_virtual_node_hashes(&master_node.node, master_node.weight)
-                    .iter()
-                {
-                    if self.virtual_nodes.remove(virtual_node_hash).is_some() {
-                        removed_nodes += 1;
+                    .into_iter()
+                    .peekable();
+                while let Some(virtual_node_hash) = virtual_node_hashes.next() {
+                    if let Some(node) = self.virtual_nodes.remove(&virtual_node_hash) {
+                        number_of_removed_virtual_nodes += 1;
+                        if virtual_node_hashes.peek().is_none() {
+                            // last item in iterator
+                            let removed_node_result = Arc::try_unwrap(node);
+                            removed_node =
+                                removed_node_result.ok().map(|master_node| master_node.node);
+                        }
                     };
                 }
-                removed_nodes
+                (removed_node, number_of_removed_virtual_nodes)
             }
-            None => 0,
+            None => (None, 0),
         }
     }
 }
@@ -304,7 +323,7 @@ mod tests {
         ring.insert(node, 1);
         assert_eq!(ring.virtual_nodes.len(), 1);
 
-        ring.remove(node);
+        ring.remove(&node);
         assert_eq!(ring.virtual_nodes.len(), 0);
     }
 
@@ -315,7 +334,7 @@ mod tests {
         ring.insert(node, 100);
         assert_eq!(ring.virtual_nodes.len(), 100);
 
-        let nodes_removed = ring.remove(node);
+        let nodes_removed = ring.remove(&node);
         assert_eq!(nodes_removed, 100);
         assert_eq!(ring.virtual_nodes.len(), 0);
     }
@@ -329,11 +348,11 @@ mod tests {
         ring.insert(node_2, 500);
         assert_eq!(ring.virtual_nodes.len(), 600);
 
-        let nodes_removed = ring.remove(node_1);
+        let nodes_removed = ring.remove(&node_1);
         assert_eq!(nodes_removed, 100);
         assert_eq!(ring.virtual_nodes.len(), 500);
 
-        let nodes_removed = ring.remove(node_2);
+        let nodes_removed = ring.remove(&node_2);
         assert_eq!(nodes_removed, 500);
         assert_eq!(ring.virtual_nodes.len(), 0);
     }
@@ -399,7 +418,7 @@ mod tests {
             assert_eq!(node_for_key_4, Some(&node_1));
         }
 
-        ring.remove(node_1);
+        ring.remove(&node_1);
 
         {
             let node_for_key_1 = ring.get(key_1);
@@ -457,7 +476,7 @@ mod tests {
         assert_eq!(node_for_val_b, Some(&node_2));
 
         // Because of collisions, only 1 virtual node was added
-        assert_eq!(ring.remove(node_2), 1);
+        assert_eq!(ring.remove(&node_2), 1);
     }
 
     #[test]
@@ -481,7 +500,7 @@ mod tests {
         assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
         assert_eq!(map.get("Another key"), Some(&"10.0.0.2:1234"));
 
-        map.remove("10.0.0.2:1234");
+        map.remove(&"10.0.0.2:1234");
 
         assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
         assert_eq!(map.get("Another key"), Some(&"10.0.0.1:1234"));

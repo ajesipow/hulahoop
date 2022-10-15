@@ -44,7 +44,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             group.bench_with_input(BenchmarkId::from_parameter(size), &key, |b, key| {
                 b.iter(|| ring.get(key));
             });
-            ring.remove("10.0.0.1:12345");
+            ring.remove(&"10.0.0.1:12345");
         }
         group.finish();
     }
@@ -59,7 +59,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             group.bench_with_input(BenchmarkId::from_parameter(size), &key, |b, key| {
                 b.iter(|| ring.get(key));
             });
-            ring.remove("10.0.0.1:12345");
+            ring.remove(&"10.0.0.1:12345");
         }
         group.finish();
     }
@@ -93,7 +93,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         for size in [1, 10, 100, 1000].iter() {
             ring.insert("10.0.0.1:12345", *size);
             group.bench_function(BenchmarkId::from_parameter(size), |b| {
-                b.iter(|| ring.remove("10.0.0.1:12345"))
+                b.iter(|| ring.remove(&"10.0.0.1:12345"))
             });
         }
         group.finish();
@@ -106,7 +106,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         for size in [1, 10, 100, 1000].iter() {
             ring.insert("10.0.0.1:12345", *size);
             group.bench_function(BenchmarkId::from_parameter(size), |b| {
-                b.iter(|| ring.remove("10.0.0.1:12345"))
+                b.iter(|| ring.remove(&"10.0.0.1:12345"))
             });
         }
         group.finish();
