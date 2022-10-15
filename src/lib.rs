@@ -181,6 +181,8 @@ where
         colliding_node
     }
 
+    /// Gets a node for a given key.
+    ///
     /// Returns a reference to the node with a hash closest to the hash of the key.
     ///
     /// # Examples
