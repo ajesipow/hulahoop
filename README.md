@@ -10,21 +10,21 @@
     use std::num::NonZeroU64;
     use hulahoop::HashRing;
 
-    let mut hashring: HashRing<&str, _> = HashRing::default();
+    let mut map: HashRing<&str, _> = HashRing::default();
 
     // Nodes only need to implement Hash
     // Provide a weight to define the number of virtual nodes
-    hashring.add("10.0.0.1:1234", NonZeroU64::new(10).unwrap());
-    hashring.add("10.0.0.2:1234", NonZeroU64::new(10).unwrap());
+    map.insert("10.0.0.1:1234", 10);
+    map.insert("10.0.0.2:1234", 10);
 
     // Keys also only need to implement Hash
-    assert_eq!(hashring.get("Some key"), Some(&"10.0.0.1:1234"));
-    assert_eq!(hashring.get("Another key"), Some(&"10.0.0.2:1234"));
+    assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(map.get("Another key"), Some(&"10.0.0.2:1234"));
 
-    hashring.remove("10.0.0.2:1234");
+    map.remove(&"10.0.0.2:1234");
 
-    assert_eq!(hashring.get("Some key"), Some(&"10.0.0.1:1234"));
-    assert_eq!(hashring.get("Another key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(map.get("Another key"), Some(&"10.0.0.1:1234"));
 ```
 
 `HashRing` uses `Arc` under the hood to allocate memory only per node and not for every virtual node added via the weight parameter.
@@ -47,20 +47,19 @@ Custom hashers can be used with the `HashRing::with_hasher()` method:
 For convenience, the [faster](https://nnethercote.github.io/perf-book/hashing.html) hasher [FxHasher](https://docs.rs/rustc-hash/1.1.0/rustc_hash/struct.FxHasher.html) can be used by activating the `fxhash` feature of this crate. 
 
 
-
 ---
 
 ## Benchmarks
 
-|                          | DefaultHasher | FxHasher |
-|--------------------------|---------------|----------|
-| Get (key length = 10)    |          10ns | 5ns      |
-| Get (key length = 100)   |          11ns | 5ns      |
-| Get (key length = 1000)  |          30ns | 11ns     |
-| Get (key length = 10000) |         300ns | 140ns    |
-| Add (weight = 1)         |          65ns | 65ns     |
-| Add (weight = 10)        |         260ns | 260ns    |
-| Add (weight = 100)       |         2.3us | 2.3us    |
+|  | DefaultHasher | FxHasher (feature=) |
+|---|---:|---:|
+| Get (key length = 10) | 10ns | 8ns |
+| Get (key length = 100) | 11ns | 8ns |
+| Get (key length = 1000) | 30ns | 12ns |
+| Get (key length = 10000) | 300ns | 140ns |
+| Add (weight = 1) | 290ns | 210ns |
+| Add (weight = 10) | 1.4us | 1.0us |
+| Add (weight = 100) | 17.0us | 14.3us |
 
 ---
 
