@@ -38,6 +38,37 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     {
         let mut ring: HashRing<&str, _> = HashRing::new();
+        let mut group =
+            c.benchmark_group("Get node for key len 100 DefaultHasher w/ n nodes");
+        for size in [1, 10, 100, 1000, 10000].iter() {
+            ring.add("10.0.0.1:12345", NonZeroU64::new(*size).unwrap());
+            let key = "a".repeat(100);
+            group.bench_with_input(BenchmarkId::from_parameter(size), &key, |b, key| {
+                b.iter(|| ring.get(key));
+            });
+            ring.remove("10.0.0.1:12345");
+        }
+        group.finish();
+    }
+
+    {
+        let mut ring: HashRing<&str, _> =
+            HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let mut group =
+            c.benchmark_group("Get node for key len 100 FxHahser w/ n nodes");
+        for size in [1, 10, 100, 1000, 10000].iter() {
+            ring.add("10.0.0.1:12345", NonZeroU64::new(*size).unwrap());
+            let key = "a".repeat(100);
+            group.bench_with_input(BenchmarkId::from_parameter(size), &key, |b, key| {
+                b.iter(|| ring.get(key));
+            });
+            ring.remove("10.0.0.1:12345");
+        }
+        group.finish();
+    }
+
+    {
+        let mut ring: HashRing<&str, _> = HashRing::new();
         let mut group = c.benchmark_group("Adding virtual nodes");
         for size in [1, 10, 100, 1000].iter() {
             group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
