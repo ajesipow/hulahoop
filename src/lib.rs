@@ -235,6 +235,9 @@ where
 
     /// Removes a node from the `HashRing`, returning the number of virtual nodes (weight) of the removed node.
     ///
+    /// The number of virtual nodes (weight) of the removed node can be lower than the weight provided
+    /// when the node was inserted in case hash collisions occurred.
+    ///
     /// # Examples
     ///
     /// ```
@@ -269,7 +272,7 @@ where
                     if let Some(node) = self.virtual_nodes.remove(&virtual_node_hash) {
                         number_of_removed_virtual_nodes += 1;
                         if virtual_node_hashes.peek().is_none() {
-                            // last item in iterator
+                            // Last item in iterator, there should be no other references to the master node and we should be able to get the node out of Arc.
                             let removed_node_result = Arc::try_unwrap(node);
                             removed_node =
                                 removed_node_result.ok().map(|master_node| master_node.node);
@@ -466,8 +469,8 @@ mod tests {
             HashRing::with_hasher(BuildHasherDefault::<CollisionHasher>::default());
         let node = "10.0.0.1:12345";
         let node_2 = "10.0.0.2:12345";
-        assert!(ring.insert(node, 2).is_none());
-        assert_eq!(ring.insert(node_2, 3), Some(node));
+        assert!(ring.insert(node, 3).is_none());
+        assert_eq!(ring.insert(node_2, 2), Some(node));
 
         let node_for_val_a = ring.get("abc");
         let node_for_val_b = ring.get(12345);
