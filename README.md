@@ -51,15 +51,14 @@ For convenience, the [faster](https://nnethercote.github.io/perf-book/hashing.ht
 
 ## Benchmarks
 
-|  | DefaultHasher | FxHasher (feature=) |
-|---|---:|---:|
-| Get (key length = 10) | 10ns | 8ns |
-| Get (key length = 100) | 11ns | 8ns |
-| Get (key length = 1000) | 30ns | 12ns |
-| Get (key length = 10000) | 300ns | 140ns |
-| Add (weight = 1) | 290ns | 210ns |
-| Add (weight = 10) | 1.4us | 1.0us |
-| Add (weight = 100) | 17.0us | 14.3us |
+|  | DefaultHasher | FxHasher (feature=fxhash) |
+|---|--------------:|--------------------------:|
+| Get (key length = 10) |          13ns |                       8ns |
+| Get (key length = 100) |          31ns |                      12ns |
+| Get (key length = 1000) |         305ns |                     137ns |
+| Add (weight = 1) |         290ns |                     210ns |
+| Add (weight = 10) |         1.4us |                     1.0us |
+| Add (weight = 100) |        17.0us |                    14.3us |
 
 ---
 
