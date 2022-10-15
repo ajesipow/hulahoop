@@ -7,7 +7,7 @@ readme = "README.md"
 keywords = ["consistent", "hash", "ring", "virtual-nodes", "distributed"]
 categories = ["algorithms", "data-structures"]
 include = ["/src", "/benches"]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["ajesipow"]
 edition = "2021"
 
