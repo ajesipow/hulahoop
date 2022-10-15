@@ -442,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn virtual_node_collisions_not_an_issue() {
+    fn virtual_node_collisions_is_not_an_issue() {
         let mut ring: HashRing<&str, _> =
             HashRing::with_hasher(BuildHasherDefault::<CollisionHasher>::default());
         let node = "10.0.0.1:12345";
@@ -458,6 +458,14 @@ mod tests {
 
         // Because of collisions, only 1 virtual node was added
         assert_eq!(ring.remove(node_2), 1);
+    }
+
+    #[test]
+    fn adding_the_same_node_twice_works() {
+        let mut ring: HashRing<&str, _> = HashRing::new();
+        let node = "10.0.0.1:12345";
+        assert_eq!(ring.insert(node, 5), None);
+        assert_eq!(ring.insert(node, 3), Some(node));
     }
 
     #[test]
