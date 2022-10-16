@@ -395,14 +395,16 @@ mod tests {
         ring.insert(node_1, 100);
         ring.insert(node_2, 500);
         assert_eq!(ring.virtual_nodes.len(), 600);
+        assert_eq!(ring.len(), 2);
 
         let nodes_removed = ring.remove(&node_1);
         assert_eq!(nodes_removed, 100);
         assert_eq!(ring.virtual_nodes.len(), 500);
+        assert_eq!(ring.len(), 1);
 
         let nodes_removed = ring.remove(&node_2);
         assert_eq!(nodes_removed, 500);
-        assert_eq!(ring.virtual_nodes.len(), 0);
+        assert_eq!(ring.len(), 0);
     }
 
     #[test]
@@ -525,6 +527,7 @@ mod tests {
 
         // Because of collisions, only 1 virtual node was added
         assert_eq!(ring.remove(&node_2), 1);
+        assert!(ring.is_empty())
     }
 
     #[test]
@@ -533,6 +536,8 @@ mod tests {
         let node = "10.0.0.1:12345";
         assert_eq!(ring.insert(node, 5), None);
         assert_eq!(ring.insert(node, 3), Some(node));
+
+        assert_eq!(ring.len(), 1);
     }
 
     #[test]
