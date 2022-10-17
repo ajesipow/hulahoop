@@ -34,11 +34,11 @@ struct MasterNode<N> {
 /// # Examples
 ///
 /// ```
-/// use std::num::NonZeroU64;
 /// use hulahoop::HashRing;
 /// let mut map: HashRing<&str, _> = HashRing::new();
-/// map.insert("127.0.0.1:1234", 1);
-/// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+///
+/// map.insert("10.0.0.1:1234", 1);
+/// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
 /// ```
 #[derive(Debug)]
 pub struct HashRing<N, B> {
@@ -63,12 +63,12 @@ impl<N> HashRing<N, BuildHasherDefault<DefaultHasher>> {
     /// # Examples
     ///
     /// ```
-    /// use std::num::NonZeroU64;
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, _> = HashRing::new();
-    /// map.insert("127.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    ///
+    /// map.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn new() -> Self {
         Self {
@@ -95,12 +95,12 @@ impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
     /// # Examples
     ///
     /// ```
-    /// use std::num::NonZeroU64;
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, _> = HashRing::new();
-    /// map.insert("127.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    ///
+    /// map.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn new() -> Self {
         Self {
@@ -112,7 +112,7 @@ impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
 
 impl<N, B> HashRing<N, B>
 where
-    N: Hash + Debug,
+    N: Hash,
     B: BuildHasher,
 {
     /// Creates an empty `HashRing` which will use the given `hash_builder` to hash nodes and keys.
@@ -121,13 +121,13 @@ where
     ///
     /// ```
     /// use std::hash::BuildHasherDefault;
-    /// use std::num::NonZeroU64;
     /// use rustc_hash::FxHasher;
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, BuildHasherDefault<FxHasher>> = HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
-    /// map.insert("127.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
+    ///
+    /// map.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn with_hasher(hash_builder: B) -> Self {
         Self {
@@ -147,12 +147,12 @@ where
     /// # Examples
     ///
     /// ```
-    /// use std::num::NonZeroU64;
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, _> = HashRing::default();
-    /// assert_eq!(map.insert("127.0.0.1:1234", 1), None);
-    /// assert_eq!(map.insert("127.0.0.1:1234", 1), Some("127.0.0.1:1234"));
+    ///
+    /// assert_eq!(map.insert("10.0.0.1:1234", 1), None);
+    /// assert_eq!(map.insert("10.0.0.1:1234", 1), Some("10.0.0.1:1234"));
     /// ```
     pub fn insert(&mut self, node: N, weight: u64) -> Option<N> {
         if weight == 0 {
@@ -186,13 +186,13 @@ where
     /// # Examples
     ///
     /// ```
-    /// use std::num::NonZeroU64;
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, _> = HashRing::default();
-    /// map.insert("127.0.0.1:1234",1);
-    /// assert_eq!(map.get("Some key"), Some(&"127.0.0.1:1234"));
-    /// assert_eq!(map.get(12345), Some(&"127.0.0.1:1234"));
+    ///
+    /// map.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    /// assert_eq!(map.get(12345), Some(&"10.0.0.1:1234"));
     /// ```
     #[inline]
     pub fn get<K>(&self, key: K) -> Option<&N>
@@ -213,6 +213,50 @@ where
                     .map(|(_, virtual_node)| virtual_node.node.borrow())
             }
         }
+    }
+
+    /// Returns the number of nodes in the Hashring.
+    ///
+    /// It does not return the number of virtual nodes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hulahoop::HashRing;
+    ///
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    ///
+    /// map.insert("10.0.0.1:1234", 10);
+    /// map.insert("10.0.0.2:1234", 10);
+    /// assert_eq!(map.len(), 2);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.virtual_nodes
+            .values()
+            .map(|node| {
+                let mut hasher = self.hash_builder.build_hasher();
+                node.node.hash(&mut hasher);
+                hasher.finish()
+            })
+            .collect::<HashSet<_>>()
+            .len()
+    }
+
+    /// Returns true if the ring contains no elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hulahoop::HashRing;
+    ///
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// assert!(map.is_empty());
+    ///
+    /// map.insert("10.0.0.1:1234", 10);
+    /// assert!(!map.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.virtual_nodes.is_empty()
     }
 
     fn get_master_node_by_hash(&self, hash: &u64) -> Option<&MasterNode<N>> {
@@ -244,9 +288,10 @@ where
     /// use hulahoop::HashRing;
     ///
     /// let mut map: HashRing<&str, _> = HashRing::default();
-    /// map.insert("127.0.0.1:1234", 10);
-    /// assert_eq!(map.remove(&"127.0.0.1:1234"), 10);
-    /// assert_eq!(map.remove(&"127.0.0.1:1234"), 0);
+    ///
+    /// map.insert("10.0.0.1:1234", 10);
+    /// assert_eq!(map.remove(&"10.0.0.1:1234"), 10);
+    /// assert_eq!(map.remove(&"10.0.0.1:1234"), 0);
     /// ```
     pub fn remove(&mut self, node: &N) -> u64 {
         self.remove_inner(node).1
@@ -350,14 +395,16 @@ mod tests {
         ring.insert(node_1, 100);
         ring.insert(node_2, 500);
         assert_eq!(ring.virtual_nodes.len(), 600);
+        assert_eq!(ring.len(), 2);
 
         let nodes_removed = ring.remove(&node_1);
         assert_eq!(nodes_removed, 100);
         assert_eq!(ring.virtual_nodes.len(), 500);
+        assert_eq!(ring.len(), 1);
 
         let nodes_removed = ring.remove(&node_2);
         assert_eq!(nodes_removed, 500);
-        assert_eq!(ring.virtual_nodes.len(), 0);
+        assert_eq!(ring.len(), 0);
     }
 
     #[test]
@@ -480,6 +527,7 @@ mod tests {
 
         // Because of collisions, only 1 virtual node was added
         assert_eq!(ring.remove(&node_2), 1);
+        assert!(ring.is_empty())
     }
 
     #[test]
@@ -488,6 +536,8 @@ mod tests {
         let node = "10.0.0.1:12345";
         assert_eq!(ring.insert(node, 5), None);
         assert_eq!(ring.insert(node, 3), Some(node));
+
+        assert_eq!(ring.len(), 1);
     }
 
     #[test]
