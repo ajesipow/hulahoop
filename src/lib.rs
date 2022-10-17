@@ -28,7 +28,7 @@ struct MasterNode<N> {
     weight: NonZeroU64,
 }
 
-/// A [hash ring] for consistent hashing.
+/// A hash ring for consistent hashing.
 ///
 ///
 /// # Examples
@@ -134,6 +134,22 @@ where
             virtual_nodes: BTreeMap::new(),
             hash_builder,
         }
+    }
+
+    /// Returns a reference to the ring’s `BuildHasher`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hulahoop::HashRing;
+    /// use std::collections::hash_map::RandomState;
+    ///
+    /// let hasher = RandomState::new();
+    /// let map: HashRing<&str, _> = HashRing::with_hasher(hasher);
+    /// let hasher: &RandomState = map.hasher();
+    /// ```
+    pub fn hasher(&self) -> &B {
+        &self.hash_builder
     }
 
     /// Inserts a node to the `HashRing`.
