@@ -242,7 +242,7 @@ where
             .len()
     }
 
-    /// Returns true if the ring contains no elements.
+    /// Returns `true` if the ring contains no elements.
     ///
     /// # Examples
     ///
@@ -257,6 +257,23 @@ where
     /// ```
     pub fn is_empty(&self) -> bool {
         self.virtual_nodes.is_empty()
+    }
+
+    /// Returns `true` if the ring contains the specified node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hulahoop::HashRing;
+    ///
+    /// let mut map: HashRing<&str, _> = HashRing::default();
+    ///
+    /// map.insert("10.0.0.1:1234", 10);
+    /// assert_eq!(map.contains_node(&"10.0.0.1:1234"), true);
+    /// assert_eq!(map.contains_node(&"10.0.0.2:1234"), false);
+    /// ```
+    pub fn contains_node(&self, node: &N) -> bool {
+        self.get_master_node(node).is_some()
     }
 
     fn get_master_node_by_hash(&self, hash: &u64) -> Option<&MasterNode<N>> {
@@ -298,14 +315,7 @@ where
     }
 
     fn remove_inner(&mut self, node: &N) -> (Option<N>, u64) {
-        // At least one node should exist
-        let virtual_node_hashes =
-            self.compute_virtual_node_hashes(node, NonZeroU64::new(1).unwrap());
-        let one_node = virtual_node_hashes
-            .iter()
-            .next()
-            .and_then(|hash| self.get_master_node_by_hash(hash));
-        match one_node {
+        match self.get_master_node(node) {
             Some(master_node) => {
                 let mut number_of_removed_virtual_nodes = 0;
                 let mut removed_node = None;
@@ -328,6 +338,16 @@ where
             }
             None => (None, 0),
         }
+    }
+
+    fn get_master_node(&self, node: &N) -> Option<&MasterNode<N>> {
+        // At least one node should exist
+        let virtual_node_hashes =
+            self.compute_virtual_node_hashes(node, NonZeroU64::new(1).unwrap());
+        virtual_node_hashes
+            .iter()
+            .next()
+            .and_then(|hash| self.get_master_node_by_hash(hash))
     }
 }
 
