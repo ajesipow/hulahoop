@@ -561,6 +561,25 @@ mod tests {
     }
 
     #[test]
+    fn contains_node_works() {
+        let mut ring: HashRing<&str, _> = HashRing::new();
+        let node_1 = "10.0.0.1:12345";
+        ring.insert(node_1, 5);
+        assert!(ring.contains_node(&node_1));
+
+        let node_2 = "10.0.0.2:12345";
+        ring.insert(node_2, 10);
+        assert!(ring.contains_node(&node_2));
+
+        ring.remove(&node_1);
+        assert!(!ring.contains_node(&node_1));
+        assert!(ring.contains_node(&node_2));
+
+        ring.remove(&node_2);
+        assert!(!ring.contains_node(&node_2));
+    }
+
+    #[test]
     fn read_me_test() {
         let mut map: HashRing<&str, _> = HashRing::default();
 
