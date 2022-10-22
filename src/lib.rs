@@ -536,6 +536,23 @@ mod tests {
     }
 
     #[test]
+    fn iterating_over_the_ring_works() {
+        let mut ring: HashRing<&str, _> = HashRing::new();
+        let node_1 = "10.0.0.1:12345";
+        let node_2 = "20.0.0.1:12345";
+        let node_3 = "30.0.0.1:12345";
+        ring.insert(node_1, 2);
+        ring.insert(node_2, 4);
+        ring.insert(node_3, 6);
+
+        let nodes = ring.iter().collect::<HashSet<_>>();
+        assert_eq!(nodes.len(), 3);
+        assert!(nodes.contains(&(&node_1, 2)));
+        assert!(nodes.contains(&(&node_2, 4)));
+        assert!(nodes.contains(&(&node_3, 6)));
+    }
+
+    #[test]
     fn adding_multiple_nodes_getting_and_removing_works() {
         let mut ring: HashRing<&str, _> = HashRing::new();
         let node_1 = "10.0.0.1:12345";
