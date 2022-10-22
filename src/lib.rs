@@ -58,10 +58,10 @@ impl<'a, N> Iterator for Iter<'a, N> {
 ///
 /// ```
 /// use hulahoop::HashRing;
-/// let mut map: HashRing<&str, _> = HashRing::new();
+/// let mut ring: HashRing<&str, _> = HashRing::new();
 ///
-/// map.insert("10.0.0.1:1234", 1);
-/// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+/// ring.insert("10.0.0.1:1234", 1);
+/// assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
 /// ```
 #[derive(Debug)]
 pub struct HashRing<N, B> {
@@ -88,10 +88,10 @@ impl<N> HashRing<N, BuildHasherDefault<DefaultHasher>> {
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::new();
+    /// let mut ring: HashRing<&str, _> = HashRing::new();
     ///
-    /// map.insert("10.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    /// ring.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn new() -> Self {
         Self {
@@ -120,10 +120,10 @@ impl<N> HashRing<N, BuildHasherDefault<FxHasher>> {
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::new();
+    /// let mut ring: HashRing<&str, _> = HashRing::new();
     ///
-    /// map.insert("10.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    /// ring.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn new() -> Self {
         Self {
@@ -147,10 +147,10 @@ where
     /// use rustc_hash::FxHasher;
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, BuildHasherDefault<FxHasher>> = HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
+    /// let mut ring: HashRing<&str, BuildHasherDefault<FxHasher>> = HashRing::with_hasher(BuildHasherDefault::<FxHasher>::default());
     ///
-    /// map.insert("10.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
+    /// ring.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
     /// ```
     pub fn with_hasher(hash_builder: B) -> Self {
         Self {
@@ -168,8 +168,8 @@ where
     /// use std::collections::hash_map::RandomState;
     ///
     /// let hasher = RandomState::new();
-    /// let map: HashRing<&str, _> = HashRing::with_hasher(hasher);
-    /// let hasher: &RandomState = map.hasher();
+    /// let ring: HashRing<&str, _> = HashRing::with_hasher(hasher);
+    /// let hasher: &RandomState = ring.hasher();
     /// ```
     pub fn hasher(&self) -> &B {
         &self.hash_builder
@@ -188,10 +188,10 @@ where
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
     ///
-    /// assert_eq!(map.insert("10.0.0.1:1234", 1), None);
-    /// assert_eq!(map.insert("10.0.0.1:1234", 1), Some("10.0.0.1:1234"));
+    /// assert_eq!(ring.insert("10.0.0.1:1234", 1), None);
+    /// assert_eq!(ring.insert("10.0.0.1:1234", 1), Some("10.0.0.1:1234"));
     /// ```
     pub fn insert(&mut self, node: N, weight: u64) -> Option<N> {
         if weight == 0 {
@@ -227,11 +227,11 @@ where
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
     ///
-    /// map.insert("10.0.0.1:1234", 1);
-    /// assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
-    /// assert_eq!(map.get(12345), Some(&"10.0.0.1:1234"));
+    /// ring.insert("10.0.0.1:1234", 1);
+    /// assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
+    /// assert_eq!(ring.get(12345), Some(&"10.0.0.1:1234"));
     /// ```
     #[inline]
     pub fn get<K>(&self, key: K) -> Option<&N>
@@ -256,18 +256,18 @@ where
 
     /// Returns the number of nodes in the Hashring.
     ///
-    /// It does not return the number of virtual nodes.
+    /// It does not return the number of virtual nodes (as specified with `weight` in the [insert](HashRing::insert) method).
     ///
     /// # Examples
     ///
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
     ///
-    /// map.insert("10.0.0.1:1234", 10);
-    /// map.insert("10.0.0.2:1234", 10);
-    /// assert_eq!(map.len(), 2);
+    /// ring.insert("10.0.0.1:1234", 10);
+    /// ring.insert("10.0.0.2:1234", 10);
+    /// assert_eq!(ring.len(), 2);
     /// ```
     pub fn len(&self) -> usize {
         self.virtual_nodes
@@ -288,11 +288,11 @@ where
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
-    /// assert!(map.is_empty());
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
+    /// assert!(ring.is_empty());
     ///
-    /// map.insert("10.0.0.1:1234", 10);
-    /// assert!(!map.is_empty());
+    /// ring.insert("10.0.0.1:1234", 10);
+    /// assert!(!ring.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         self.virtual_nodes.is_empty()
@@ -305,11 +305,11 @@ where
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
     ///
-    /// map.insert("10.0.0.1:1234", 10);
-    /// assert_eq!(map.contains_node(&"10.0.0.1:1234"), true);
-    /// assert_eq!(map.contains_node(&"10.0.0.2:1234"), false);
+    /// ring.insert("10.0.0.1:1234", 10);
+    /// assert_eq!(ring.contains_node(&"10.0.0.1:1234"), true);
+    /// assert_eq!(ring.contains_node(&"10.0.0.2:1234"), false);
     /// ```
     pub fn contains_node(&self, node: &N) -> bool {
         self.get_master_node(node).is_some()
@@ -317,7 +317,7 @@ where
 
     /// An iterator visiting all node-weight pairs in arbitrary order. The iterator element type is `(&'a N, u64)`.
     ///
-    /// The weight is the actual number of virtual nodes. It may be lower than the weight provided when inserting
+    /// The weight is the actual number of virtual nodes. It may be lower than the `weight` provided when inserting
     /// a node in case of hash collisions.
     ///
     /// # Examples
@@ -370,19 +370,19 @@ where
 
     /// Removes a node from the `HashRing`, returning the number of virtual nodes (weight) of the removed node.
     ///
-    /// The number of virtual nodes (weight) of the removed node can be lower than the weight provided
-    /// when the node was inserted in case hash collisions occurred.
+    /// The returned number is the actual number of virtual nodes. It may be lower than the `weight` provided when inserting
+    /// a node in case of hash collisions.
     ///
     /// # Examples
     ///
     /// ```
     /// use hulahoop::HashRing;
     ///
-    /// let mut map: HashRing<&str, _> = HashRing::default();
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
     ///
-    /// map.insert("10.0.0.1:1234", 10);
-    /// assert_eq!(map.remove(&"10.0.0.1:1234"), 10);
-    /// assert_eq!(map.remove(&"10.0.0.1:1234"), 0);
+    /// ring.insert("10.0.0.1:1234", 10);
+    /// assert_eq!(ring.remove(&"10.0.0.1:1234"), 10);
+    /// assert_eq!(ring.remove(&"10.0.0.1:1234"), 0);
     /// ```
     pub fn remove(&mut self, node: &N) -> u64 {
         self.remove_inner(node).1
