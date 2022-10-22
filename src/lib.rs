@@ -21,11 +21,34 @@ use std::hash::BuildHasherDefault;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::num::NonZeroU64;
 use std::sync::Arc;
+use std::vec::IntoIter;
 
 #[derive(Debug)]
 struct MasterNode<N> {
     node: N,
     weight: NonZeroU64,
+}
+
+/// An iterator over the nodes of a `HashRing`.
+///
+/// This `struct` is created by the [iter](HashRing::iter) method on [HashRing](HashRing). See its documentation for more.
+#[derive(Debug)]
+pub struct Iter<'a, N> {
+    inner: IntoIter<(u64, (&'a N, u64))>,
+}
+
+impl<'a, N> Iter<'a, N> {
+    fn new(iter: IntoIter<(u64, (&'a N, u64))>) -> Self {
+        Self { inner: iter }
+    }
+}
+
+impl<'a, N> Iterator for Iter<'a, N> {
+    type Item = (&'a N, u64);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|v| v.1)
+    }
 }
 
 /// A hash ring for consistent hashing.
@@ -290,6 +313,41 @@ where
     /// ```
     pub fn contains_node(&self, node: &N) -> bool {
         self.get_master_node(node).is_some()
+    }
+
+    /// An iterator visiting all node-weight pairs in arbitrary order. The iterator element type is `(&'a N, u64)`.
+    ///
+    /// The weight is the actual number of virtual nodes. It may be lower than the weight provided when inserting
+    /// a node in case of hash collisions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hulahoop::HashRing;
+    ///
+    /// let mut ring: HashRing<&str, _> = HashRing::default();
+    ///
+    /// ring.insert("10.0.0.1:1234", 10);
+    /// ring.insert("10.0.0.2:1234", 5);
+    ///
+    /// for (node, weight) in ring.iter() {
+    ///     println!("node: {node} weight: {weight}");
+    /// }
+    /// ```
+    pub fn iter(&self) -> Iter<'_, N> {
+        let mut map: Vec<_> = self
+            .virtual_nodes
+            .values()
+            .map(|node| {
+                let mut hasher = self.hash_builder.build_hasher();
+                node.node.hash(&mut hasher);
+                (hasher.finish(), (&node.node, node.weight.get()))
+            })
+            .collect::<Vec<_>>();
+        map.sort_unstable_by_key(|n| n.0);
+        map.dedup_by(|x, y| x.0 == y.0);
+
+        Iter::new(map.into_iter())
     }
 
     fn get_master_node_by_hash(&self, hash: &u64) -> Option<&MasterNode<N>> {
