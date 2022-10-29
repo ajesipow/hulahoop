@@ -180,7 +180,7 @@ where
     /// A `weight`, representing the number of virtual nodes for the given `node`, must be provided.
     ///
     /// There can be hash collisions resulting in fewer than `weight` virtual nodes added.
-    /// If the ring did not have this node present, None is returned.
+    /// If the ring did not have this node present or `weight` is 0, None is returned.
     /// If the ring did have this node present, the virtual nodes are updated, and the old node is returned.
     ///
     /// # Examples
