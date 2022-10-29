@@ -7,24 +7,23 @@
 ## Usage
 
 ```rust
-    use std::num::NonZeroU64;
     use hulahoop::HashRing;
 
-    let mut map: HashRing<&str, _> = HashRing::default();
+    let mut ring: HashRing<&str, _> = HashRing::default();
 
     // Nodes only need to implement Hash
     // Provide a weight to define the number of virtual nodes
-    map.insert("10.0.0.1:1234", 10);
-    map.insert("10.0.0.2:1234", 10);
+    ring.insert("10.0.0.1:1234", 10);
+    ring.insert("10.0.0.2:1234", 10);
 
     // Keys also only need to implement Hash
-    assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
-    assert_eq!(map.get("Another key"), Some(&"10.0.0.2:1234"));
+    assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(ring.get("Another key"), Some(&"10.0.0.2:1234"));
 
-    map.remove(&"10.0.0.2:1234");
+    ring.remove(&"10.0.0.2:1234");
 
-    assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
-    assert_eq!(map.get("Another key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
+    assert_eq!(ring.get("Another key"), Some(&"10.0.0.1:1234"));
 ```
 
 `HashRing` uses `Arc` under the hood to allocate memory only per node and not for every virtual node added via the weight parameter.
