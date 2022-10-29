@@ -180,7 +180,7 @@ where
     /// A `weight`, representing the number of virtual nodes for the given `node`, must be provided.
     ///
     /// There can be hash collisions resulting in fewer than `weight` virtual nodes added.
-    /// If the ring did not have this node present, None is returned.
+    /// If the ring did not have this node present or `weight` is 0, None is returned.
     /// If the ring did have this node present, the virtual nodes are updated, and the old node is returned.
     ///
     /// # Examples
@@ -672,20 +672,20 @@ mod tests {
 
     #[test]
     fn read_me_test() {
-        let mut map: HashRing<&str, _> = HashRing::default();
+        let mut ring: HashRing<&str, _> = HashRing::default();
 
         // Nodes only need to implement Hash
         // Provide a weight to define the number of virtual nodes
-        map.insert("10.0.0.1:1234", 10);
-        map.insert("10.0.0.2:1234", 10);
+        ring.insert("10.0.0.1:1234", 10);
+        ring.insert("10.0.0.2:1234", 10);
 
         // Keys also only need to implement Hash
-        assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
-        assert_eq!(map.get("Another key"), Some(&"10.0.0.2:1234"));
+        assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
+        assert_eq!(ring.get("Another key"), Some(&"10.0.0.2:1234"));
 
-        map.remove(&"10.0.0.2:1234");
+        ring.remove(&"10.0.0.2:1234");
 
-        assert_eq!(map.get("Some key"), Some(&"10.0.0.1:1234"));
-        assert_eq!(map.get("Another key"), Some(&"10.0.0.1:1234"));
+        assert_eq!(ring.get("Some key"), Some(&"10.0.0.1:1234"));
+        assert_eq!(ring.get("Another key"), Some(&"10.0.0.1:1234"));
     }
 }
